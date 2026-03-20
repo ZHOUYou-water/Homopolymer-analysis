@@ -89,6 +89,7 @@ BiocManager::install(c("GenomicRanges", "rtracklayer"))
 ```
 
 ---
+<img width="416" height="337" alt="image" src="https://github.com/user-attachments/assets/0d228d9d-e24f-4284-bd24-4aa07ff4c50b" />
 
 ## Installation
 
@@ -161,18 +162,6 @@ Joins **`homopolymer_stats.xlsx`** (species-level A/T/C/G homopolymer count stri
 - **Figure4** deduplicates and special-cases specific long homopolymers as documented in code (e.g. split 18T across genes).
 - **Figure5** matches taxa by **species** first, then **genus** for unmatched rows.
 - Record **Git commit**, input file versions, and any manual edits to path constants when reproducing figures.
-
----
-
-## Data availability
-
-Raw sequencing data are not included. Processed tables (Giraffe outputs, homopolymer summaries, GFF/BED, Homopolish exports) are subject to your publication or repository policy.
-
----
-
-## Citation
-
-If you use this code in a publication, cite the associated paper (add DOI / bioRxiv when available) and relevant tools (**Homopolish**, **Giraffe**, **Oxford Nanopore**, **NCBI Taxonomy** as applicable).
 
 ---
 
