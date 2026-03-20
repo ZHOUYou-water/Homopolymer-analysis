@@ -1,6 +1,6 @@
 # Homopolymer analysis (Nanopore)
 
-Scripts for analyzing homopolymer-associated errors and related QC in **mitochondrial and comparative genomics** workflows, using outputs from alignments / quality tools (e.g. Giraffe-style `Observed_information.txt`, `Homoploymer_summary.txt`) and **Homopolish** site lists.
+Scripts for **read-level QC**, **homopolymer accuracy**, **mitochondrial annotation context**, **circos layouts**, and **comparative homopolymer statistics**, using outputs from alignment / quality tools (e.g. Giraffe-style `Observed_information.txt`, `Homoploymer_summary.txt`, `homopolymer_in_reference` tables), **GFF3 / BED**, **Homopolish** site lists, and optional **NCBI taxonomy** dumps.
 
 ---
 
@@ -23,60 +23,34 @@ Scripts for analyzing homopolymer-associated errors and related QC in **mitochon
 
 ## Overview
 
-This collection supports:
+This folder contains **2 Python** and **5 R** scripts that together support:
 
-- **Read-level QC**: observed vs estimated accuracy; insertion/deletion summaries from per-read tables.
-- **Homopolymer accuracy**: accuracy vs homopolymer length across species or library type (simplex / duplex); summaries from `Homoploymer_summary.txt`-style files.
-- **Mitochondrial context**: overlap of homopolymers with CDS / tRNA / rRNA (GFF3 + BED); lollipop-style site maps.
-- **Genome layout**: circos tracks for genes + homopolymer segments; multi-genome length / feature comparison from FASTA + GFF3.
-- **Assembly / error panels**: homopolymer-class error rates (e.g. HK2025-style count tables) for figures.
+- **Read-level QC**: observed vs estimated per-read accuracy (Giraffe-style tables).
+- **Homopolymer accuracy**: species- and library-type summaries from `Homoploymer_summary.txt`; point accuracy along the genome (e.g. T homopolymers).
+- **Mitochondrial context**: homopolymer intervals overlapped with CDS / tRNA / rRNA (GFF3); circos gene + homopolymer tracks for multiple references; Homopolish sites on a gene model.
+- **Error / indel panels**: mean insertion and deletion per read; homopolymer-class and position-related panels for selected datasets.
+- **Taxonomy-linked summaries**: family–genus lists from NCBI `names.dmp` / `nodes.dmp`; phylum-level stacked bars from species homopolymer count spreadsheets plus NCBI lineage tables.
 
-> **Note:** Scripts were developed with local absolute paths (`setwd`, input paths). Before publishing or sharing, factor paths into a small config section or RStudio project-relative paths.
+> **Note:** Paths use `setwd`, `~/Desktop/`, and other fixed locations. Before publishing or sharing, point these to your data layout or use project-relative paths (e.g. [`here`](https://here.r-lib.org/)).
 
 ---
 
 ## Repository layout
 
-Copy or symlink your analysis scripts into a structure similar to:
-
 ```text
-homopolymer-analysis/
+code/
 ├── README.md
 ├── requirements.txt
-├── python/
-│   ├── count_homopolymers.py      # FASTA-level homopolymer enumeration
-│   ├── count_cds_homo.py          # Homopolish sites → CDS mapping + summaries
-│   └── stat_homo_in_Cds.py        # Per-CDS short vs long homopolymer counts
-└── r/
-    ├── figure1_homo.R
-    ├── figure2_homo.R
-    ├── new_revise_figure1_homo.R
-    ├── new_revise_figure1_qc.R
-    ├── figure1_qc.R
-    ├── figure2_qc.R
-    ├── figure4_assembly_acc.R
-    ├── point_accurcy.R
-    ├── read_insertion_deletion.R
-    ├── count_mito_homo.R
-    ├── lolipop.R
-    ├── genome_comparison.R
-    ├── error.R
-    ├── count_length.R
-    ├── human_circos_revised.R
-    ├── fly_circos_revised.R
-    ├── danio_circos_revised.R
-    ├── k_circos_revised.R
-    ├── cgc1_circos_revised.R
-    ├── hk2025_circos_revised.R
-    └── code/
-        ├── Figure1.R
-        ├── Figure2.R
-        ├── Figure3.R
-        ├── Figure4.R
-        └── Figure5.R
+├── extract_family_genus.py       # NCBI taxonomy → family/genus Excel
+├── extract_number of homo.py     # FASTA → homopolymer intervals (≥4 bp); see filename note below
+├── Figure1.R                     # QC boxplots + homopolymer accuracy scatter (multi-species)
+├── Figure2.R                     # Circos: gene track + homopolymer length bands (6 genomes)
+├── Figure3.R                     # Ins/del bars + homopolymer / error / accuracy panels (HK2025, fly)
+├── Figure4.R                     # Feature–homopolymer bars + duplex T accuracy + Homopolish / BED
+└── Figure5.R                     # Phylum (and Nematoda order) vs long-homopolymer stacked bars
 ```
 
-Adjust names to match what you actually commit; the descriptions below follow the current script logic.
+**Filename note:** `extract_number of homo.py` contains a space. For Git and command-line use, consider renaming to e.g. `extract_homopolymer_positions.py` and updating any references.
 
 ---
 
@@ -85,28 +59,29 @@ Adjust names to match what you actually commit; the descriptions below follow th
 ### Python
 
 - **Version:** 3.8+
-- **Packages:** see `requirements.txt` (at minimum `pandas` for CDS / Homopolish integration).
+- **Packages:** see `requirements.txt`
+  - `extract_family_genus.py`: **pandas**, **openpyxl** (Excel export)
+  - `extract_number of homo.py`: standard library only
 
 ### R
 
-Typical packages used across scripts (versions may vary):
+| Package | Typical use |
+|--------|-------------|
+| `ggplot2`, `dplyr`, `tidyr`, `readr`, `stringr`, `forcats` | Plotting and wrangling |
+| `tidyverse` | Meta-package (Figure1) |
+| `ggdist` | Distribution / half-eye plots (Figure1) |
+| `patchwork` | Multi-panel layout (Figure3) |
+| `scales` | Axis and percent labels |
+| `circlize` | Circos (Figure2) |
+| `GenomicRanges`, `rtracklayer` | GFF / interval overlap (Figure4) |
+| `readxl` | Excel input (Figure5) |
 
-| Package        | Typical use                          |
-|----------------|--------------------------------------|
-| `ggplot2`      | Core plotting                        |
-| `dplyr`, `tidyr`, `readr`, `stringr` | Data wrangling (`tidyverse` meta) |
-| `patchwork`    | Multi-panel figures                  |
-| `scales`       | Axis / label formatting              |
-| `ggdist`       | Distribution / raincloud-style plots |
-| `GenomicRanges`, `rtracklayer` | Interval overlap (GFF/BED/sites) |
-| `circlize`     | Circos genome + homopolymer tracks   |
-
-Install missing packages in R:
+Install in R:
 
 ```r
 install.packages(c(
-  "ggplot2", "dplyr", "tidyr", "readr", "stringr",
-  "patchwork", "scales", "tidyverse", "ggdist", "circlize"
+  "ggplot2", "dplyr", "tidyr", "readr", "stringr", "forcats",
+  "tidyverse", "ggdist", "patchwork", "scales", "circlize", "readxl"
 ))
 if (!requireNamespace("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
@@ -119,9 +94,9 @@ BiocManager::install(c("GenomicRanges", "rtracklayer"))
 
 ```bash
 git clone https://github.com/<your-username>/homopolymer-analysis.git
-cd homopolymer-analysis
+cd homopolymer-analysis/code   # or your repo path containing these scripts
 python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -131,91 +106,73 @@ pip install -r requirements.txt
 
 ### Python
 
-#### `count_homopolymers.py`
+#### `extract_family_genus.py`
 
-Scans one or more sequences in a **FASTA** file, reports homopolymer counts by base and by run length (configurable minimum length).
+Reads NCBI taxonomy **`names.dmp`** and **`nodes.dmp`** (pipe-separated), keeps scientific names, walks the tree to attach each genus to a family, and writes **`family_genus_list.xlsx`** (family, genus list, genus count). Edit the input/output paths at the top of the script.
 
-```bash
-python3 count_homopolymers.py reference.fasta -m 2
-python3 count_homopolymers.py reference.fasta -m 2 -v   # per-site lines
-```
+#### `extract_number of homo.py`
 
-#### `count_cds_homo.py` (Homopolish → CDS)
-
-Maps **Homopolish** correction sites to **CDS** coordinates using a CDS FASTA whose headers encode genomic intervals, e.g. `>gene|start-end`. Duplicate genome positions are collapsed (**one row per `Before_Pos`**). Writes:
-
-- Per-site table with CDS-relative position and local homopolymer length.
-- Per-gene summary (counts in homopolymer, length &gt; 10, etc.).
-
-Edit the file-header paths for: Homopolish site list, CDS FASTA, and output CSV paths.
-
-#### `stat_homo_in_Cds.py`
-
-Reads a CDS multi-FASTA and, per sequence, counts homopolymer runs of length ≥ 4, split into **&lt; 10** vs **≥ 10** bp. Prints a TSV-style table to stdout. Paths are set inside the script—parameterize or use `argparse` if you generalize for the repo.
+Reads a **FASTA**, finds homopolymer runs of **A/T/C/G with length ≥ 4** (regex), writes a tab-separated file with columns **`base`** (e.g. `12T`), **`start`**, **`end`** (**1-based** start). Prints run-length counts and highlights runs **≥ 10**. Default `fasta_file` / `output_file` paths are set in `__main__`—change before batch use.
 
 ---
 
 ### R
 
-#### Homopolymer accuracy and read QC
+#### `Figure1.R`
 
-| Script | Role |
-|--------|------|
-| `figure1_homo.R` | Multi-species lines: homopolymer length vs accuracy (%), and vs log2 count; facet by species. |
-| `figure2_homo.R` | Simplex/duplex (e.g. *Drosophila*, *Dirofilaria*): A/T-focused homopolymer panels. |
-| `new_revise_figure1_homo.R` | Revised multi-dataset figure from `Homoploymer_summary.txt` inputs + `ggdist` / `patchwork`. |
-| `figure1_qc.R`, `figure2_qc.R`, `new_revise_figure1_qc.R` | Read accuracy: observed vs estimated from Giraffe-style `Observed_information.txt` / `Estimated_information.txt`. |
-| `code/Figure1.R`–`Figure5.R` | Publication-style composite panels (QC, homopolymer, etc.—see in-file comments and `setwd`). |
-| `point_accurcy.R` | Point-level accuracy from `homopolymer_in_reference`-style tables (e.g. T homopolymers, genomic segments). |
-| `read_insertion_deletion.R` | Insertion/deletion summaries from per-read observed quality tables. |
-| `error.R`, `count_length.R` | Supporting error / length summaries (paths inside script). |
+- **Panel A:** Boxplots of per-read **observed vs estimated** accuracy (`Observed_information.txt`, `Estimated_information.txt`) for human, zebrafish, *K. azureus*, *C. elegans*, *D. melanogaster* (simplex/duplex), *D. hongkongensis* (simplex/duplex).
+- **Panel B:** Scatter of **homopolymer overall accuracy** by base from **`Homoploymer_summary.txt`** for the same groups.
 
-#### Mitochondrial genome, genes, and Homopolish sites
+Expects `setwd("~/Desktop/benchmark/")` and a Giraffe-style directory tree under that root.
 
-| Script | Role |
-|--------|------|
-| `count_mito_homo.R` | Homopolymer intervals + GFF3 features → overlap with CDS/tRNA/rRNA; optional special-case splitting of long runs. |
-| `lolipop.R` | BED gene model + Homopolish sites CSV → genomic ranges and lollipop-style visualization. |
+#### `Figure2.R`
 
-#### Circos (genome + homopolymers)
+Single script driving **six circos PDFs** (*Danio*, human, *K. azureus*, *C. elegans* CGC1, fly, HK2025): gene-type coloring on one track and three homopolymer length bands (4–7, 8–10, &gt;10) on separate tracks. Reads species-specific **BED-like** tables and homopolymer interval files under `circos/`. `setwd("~/Desktop/benchmark/")`.
 
-Species- or dataset-specific drivers (same pattern): `human_circos_revised.R`, `fly_circos_revised.R`, `danio_circos_revised.R`, `k_circos_revised.R`, `cgc1_circos_revised.R`, `hk2025_circos_revised.R`. Each reads a `.bed` (gene track) and a homopolymer interval file, then draws circos PDFs via `circlize`.
+#### `Figure3.R`
 
-#### Assembly / comparison
+Combined figure workflow: mean **insertion** and **deletion** per read from **`Observed_information.txt`** (HK2025 simplex/duplex, *Drosophila* simplex/duplex); additional sections for homopolymer-related bars, error curves, and accuracy vs homopolymer count (see in-script comments and paths). `setwd("~/Desktop/benchmark/")`.
 
-| Script | Role |
-|--------|------|
-| `figure4_assembly_acc.R` | Homopolymer-class error rates (e.g. simplex vs duplex) from summarized count tables. |
-| `genome_comparison.R` | Compare genome lengths and GFF features across references (horizontal layout figure). |
+#### `Figure4.R`
+
+- **Part 1:** Reads homopolymer intervals (e.g. from the Python homopolymer extractor as **`nc031365.txt`**) and a **GFF3**, overlaps with CDS / tRNA / rRNA, optional split of a long Arg-run; stacked bar of homopolymer length class by feature.
+- **Part 2:** Duplex **T-homopolymer accuracy vs position** from **`duplex.homopolymer_in_reference.txt`**.
+- **Part 3:** HK2025 **BED** + **Homopolish** CSV → genomic ranges, site categories, and summary plots.
+
+Coordinate handling follows comments in-file (e.g. BED start **+1** where noted).
+
+#### `Figure5.R`
+
+Joins **`homopolymer_stats.xlsx`** (species-level A/T/C/G homopolymer count strings) with **`ncbi_lineages_*.csv`** (eukaryote lineages), classifies whether any run is **&gt; 10 bp**, and builds **stacked bar plots** by **phylum** (rare phyla collapsed to “Others”) and follow-on **Nematoda by order**. `setwd("~/Desktop/")`. Uses **Times New Roman** in theme for some panels.
 
 ---
 
 ## Usage notes
 
-1. **Coordinates:** Scripts assume **1-based** genomic positions where noted (e.g. Homopolish `After_Pos`, GFF-derived intervals). BED inputs may be converted with `+1` on start where the script comments specify 0-based BED.
-2. **Giraffe-style inputs:** Many R scripts expect directory trees like `.../2_Observed_quality/Observed_information.txt`, `Homoploymer_summary.txt`, etc. Mirror that layout or change `read.table` paths.
-3. **Homopolish:** Site files may be whitespace-separated columns (`Before_Pos`, bases, `After_Pos`) or CSV exports—use the Python script that matches your format (`count_cds_homo.py` vs workflows in `lolipop.R`).
-4. **Paths:** Replace `setwd("/Users/...")` and hard-coded paths with your machine or use [`here`](https://here.r-lib.org/) / project-relative paths.
+1. **Coordinates:** Homopolymer positions from the Python script are **1-based** on the concatenated FASTA sequence. GFF coordinates follow the file; BED may need **+1** on start where scripts comment.
+2. **Giraffe-style inputs:** Figure1 and Figure3 expect paths like `.../2_Observed_quality/Observed_information.txt`, `Homoploymer_summary.txt`, etc.
+3. **Homopolish:** Figure4 expects a CSV export with columns matching the script’s `read_csv` / rename logic (`After Homopolish`, `Gene`, etc.); adjust if your export differs.
+4. **NCBI dumps:** For `extract_family_genus.py`, obtain current `names.dmp` and `nodes.dmp` from the NCBI taxonomy dump.
 
 ---
 
 ## Reproducibility
 
-- **Duplicate genomic positions:** Homopolish → CDS mapping deduplicates on `Before_Pos` (one correction per position).
-- **Homopolymer length** in CDS mapping is computed **locally** along the CDS sequence at the mapped coordinate.
-- **Analysis parameters** (length thresholds, species subsets, facet layouts) are set explicitly in each script; record Git commit hashes and random seeds if you add stochastic steps later.
+- **Figure4** deduplicates and special-cases specific long homopolymers as documented in code (e.g. split 18T across genes).
+- **Figure5** matches taxa by **species** first, then **genus** for unmatched rows.
+- Record **Git commit**, input file versions, and any manual edits to path constants when reproducing figures.
 
 ---
 
 ## Data availability
 
-Raw sequencing data are not included (size / ethics / access). Processed tables compatible with these scripts (e.g. Giraffe outputs, homopolymer summary TSVs) can be shared per publication policy or on request.
+Raw sequencing data are not included. Processed tables (Giraffe outputs, homopolymer summaries, GFF/BED, Homopolish exports) are subject to your publication or repository policy.
 
 ---
 
 ## Citation
 
-If you use this repository in a publication, please cite the associated paper (add DOI / bioRxiv link when available) and, where applicable, tools such as **Homopolish**, **Giraffe**, and **Oxford Nanopore** basecalling / chemistry documentation.
+If you use this code in a publication, cite the associated paper (add DOI / bioRxiv when available) and relevant tools (**Homopolish**, **Giraffe**, **Oxford Nanopore**, **NCBI Taxonomy** as applicable).
 
 ---
 
@@ -223,10 +180,8 @@ If you use this repository in a publication, please cite the associated paper (a
 
 **ZHOU You** — [yzhou799-c@my.cityu.edu.hk](mailto:yzhou799-c@my.cityu.edu.hk)
 
-For bugs or feature requests, please open an issue on GitHub (replace with your real repo URL after upload):
-
-`https://github.com/<your-username>/homopolymer-analysis`
+Issues: `https://github.com/<your-username>/homopolymer-analysis`
 
 ---
 
-**Reminder:** Verify input column names, separators, and coordinate systems (0-based vs 1-based) before batch runs; mismatches are the most common source of off-by-one overlaps in genomics scripts.
+**Reminder:** Check column names, separators, and **0-based vs 1-based** conventions before batch runs; mismatches are the usual cause of interval errors.
