@@ -33,6 +33,9 @@ This folder contains **2 Python** and **5 R** scripts that together support:
 
 > **Note:** Paths use `setwd`, `~/Desktop/`, and other fixed locations. Before publishing or sharing, point these to your data layout or use project-relative paths (e.g. [`here`](https://here.r-lib.org/)).
 
+Overall pipeline
+[github.tif](https://github.com/user-attachments/files/26134344/github.tif)
+
 ---
 
 ## Repository layout
@@ -89,7 +92,6 @@ BiocManager::install(c("GenomicRanges", "rtracklayer"))
 ```
 
 ---
-<img width="416" height="337" alt="image" src="https://github.com/user-attachments/assets/0d228d9d-e24f-4284-bd24-4aa07ff4c50b" />
 
 ## Installation
 
