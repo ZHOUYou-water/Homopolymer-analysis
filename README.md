@@ -34,7 +34,7 @@ This folder contains **2 Python** and **5 R** scripts that together support:
 > **Note:** Paths use `setwd`, `~/Desktop/`, and other fixed locations. Before publishing or sharing, point these to your data layout or use project-relative paths (e.g. [`here`](https://here.r-lib.org/)).
 
 Overall pipeline
-[Pipeline.tif](https://github.com/user-attachments/files/26134399/Pipeline.tif)
+[Pipeline.tif](https://github.com/user-attachments/files/26134435/Pipeline.tif)
 
 ---
 
